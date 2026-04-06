@@ -200,6 +200,26 @@ export const createWindow = (opts: CreateWindowOpts = {}) => {
   // to log network traffic
   interceptNetwork(window);
   
+  // helper function to load URL with retry
+  const loadUrlWithRetry = async (url: string, retries: number = 10, delay: number = 2000): Promise<void> => {
+    for (let i = 0; i < retries; i++) {
+      try {
+        console.log(`[window] Attempting to load URL (attempt ${i + 1}/${retries}): ${url}`);
+        await window.loadURL(url);
+        console.log(`[window] Successfully loaded URL`);
+        return;
+      } catch (error: any) {
+        if (error.code === 'ERR_CONNECTION_REFUSED' && i < retries - 1) {
+          console.log(`[window] Connection refused, retrying in ${delay}ms...`);
+          await new Promise(resolve => setTimeout(resolve, delay));
+          delay = Math.min(delay * 1.2, 5000);
+        } else {
+          throw error;
+        }
+      }
+    }
+  };
+  
   // and load the index.html of the app.
   if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
 
@@ -209,10 +229,11 @@ export const createWindow = (opts: CreateWindowOpts = {}) => {
       queryParams = '?' + Object.keys(opts.queryParams).map(key => key + '=' + encodeURIComponent(opts.queryParams[key])).join('&');
     }
 
-    // load url
+    // load url with retry
     const url = `${MAIN_WINDOW_VITE_DEV_SERVER_URL}${queryParams}#${opts.hash||''}`;
-    console.log(`[window] Loading URL: ${url}`);
-    window.loadURL(url);
+    loadUrlWithRetry(url).catch(err => {
+      console.error(`[window] Failed to load URL after retries:`, err.message);
+    });
   
   } else {
 

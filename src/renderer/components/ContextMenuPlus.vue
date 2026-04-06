@@ -14,7 +14,7 @@
           <input v-model="filter" :placeholder="t('common.search')" autofocus="true" @keydown.stop="onKeyDown" @keyup.stop="onKeyUp" />
         </div>
         <div v-else-if="currentSubmenu || (items && dataSubmenuStack.length > 0)" class="back-label">
-          Back
+          {{ t('back') }}
         </div>
       </div>
       
