@@ -123,8 +123,32 @@ export const installIpc = (
     autoUpdater.install();
   });
 
+  const updateThemeBasedOnTime = () => {
+    const hour = new Date().getHours();
+    // 6:00 - 18:00 使用明亮模式，其他时间使用黑暗模式
+    const isDaytime = hour >= 6 && hour < 18;
+    nativeTheme.themeSource = isDaytime ? 'light' : 'dark';
+  };
+
+  let themeUpdateInterval: NodeJS.Timeout | null = null;
+
   ipcMain.on(IPC.APP.SET_APPEARANCE_THEME, (event, theme) => {
-    nativeTheme.themeSource = theme;
+    if (theme === 'system') {
+      // 当选择系统主题时，根据时间自动切换
+      updateThemeBasedOnTime();
+      // 每小时检查一次时间，更新主题
+      if (themeUpdateInterval) {
+        clearInterval(themeUpdateInterval);
+      }
+      themeUpdateInterval = setInterval(updateThemeBasedOnTime, 60 * 60 * 1000);
+    } else {
+      // 当选择具体主题时，清除时间检查定时器
+      if (themeUpdateInterval) {
+        clearInterval(themeUpdateInterval);
+        themeUpdateInterval = null;
+      }
+      nativeTheme.themeSource = theme;
+    }
     event.returnValue = theme;
   });
 

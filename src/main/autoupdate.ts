@@ -19,6 +19,12 @@ export default class AutoUpdater {
 
   private initialize = () => {
 
+    // skip auto-update in development mode (Squirrel not available)
+    if (process.env.DEBUG) {
+      console.log('[update] Skipping auto-update check in development mode')
+      return
+    }
+
     // localization
     const t = useI18n(this.app)
 

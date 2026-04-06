@@ -21,13 +21,6 @@
           </div>
         </div>
       </div>
-      <!-- <div class="form-field lightTint" v-if="store.isFeatureEnabled('appearance') && appearanceTheme.getTheme() === 'light'">
-        <label>{{ t('settings.general.lightTint') }}</label>
-        <select v-model="lightTint" @change="onTintChange">
-          <option value="white">{{ t('settings.general.tints.white') }}</option>
-          <option value="gray">{{ t('settings.general.tints.gray') }}</option>
-        </select>
-      </div> -->
       <div class="form-field darkTint" v-if="store.isFeatureEnabled('appearance')">
         <label>{{ t('settings.general.darkTint') }}</label>
         <select v-model="darkTint" @change="save">
@@ -39,9 +32,9 @@
         <label>{{ t('settings.general.localeUI') }}</label>
         <LangSelect v-model="localeUI" default-text="common.language.system" :filter="locales" @change="save" />
       </div>
-      <div class="form-field reset-tips">
-        <label>{{ t('settings.general.resetTips') }}</label>
-        <button @click.prevent="onResetTips">{{ t('common.reset') }}</button>
+      <div class="form-field reset-settings">
+        <label>{{ t('settings.general.resetSettings') }}</label>
+        <button @click.prevent="onResetSettings" class="secondary">{{ t('common.reset') }}</button>
       </div>
       <div class="form-field horizontal run-at-login">
         <input type="checkbox" id="run-at-login" v-model="runAtLogin" @change="save" />
@@ -65,6 +58,8 @@ import LangSelect from '@components/LangSelect.vue'
 import { t } from '@services/i18n'
 import { store } from '@services/store'
 import { ref } from 'vue'
+import Dialog from '@renderer/utils/dialog'
+import defaults from '@root/defaults/settings.json'
 
 const appearance = ref(null)
 const darkTint = ref(null)
@@ -74,6 +69,18 @@ const localeUI = ref(null)
 const runAtLogin = ref(false)
 const hideOnStartup = ref(false)
 const keepRunning = ref(false)
+
+const resetOptions = [
+  { key: 'tips', label: t('settings.general.resetOptions.tips') },
+  { key: 'llm', label: t('settings.general.resetOptions.llm') },
+  { key: 'appearance', label: t('settings.general.resetOptions.appearance') },
+  { key: 'shortcuts', label: t('settings.general.resetOptions.shortcuts') },
+  { key: 'plugins', label: t('settings.general.resetOptions.plugins') },
+  { key: 'stt', label: t('settings.general.resetOptions.stt') },
+  { key: 'tts', label: t('settings.general.resetOptions.tts') },
+  { key: 'rag', label: t('settings.general.resetOptions.rag') },
+  { key: 'language', label: t('settings.general.resetOptions.language') },
+]
 
 const setAppearanceTheme = (value: string) => {
   appearance.value = value
@@ -92,9 +99,90 @@ const load = () => {
   keepRunning.value = store.config.general.keepRunning
 }
 
-const onResetTips = () => {
-  store.config.general.tips = {}
+const onResetSettings = async () => {
+  const html = `
+    <div class="reset-options">
+      <p style="margin-bottom: 16px; text-align: left;">${t('settings.general.resetSettingsDescription')}</p>
+      ${resetOptions.map(opt => `
+        <label class="reset-option">
+          <input type="checkbox" name="reset-${opt.key}" value="${opt.key}" checked>
+          <span>${opt.label}</span>
+        </label>
+      `).join('')}
+    </div>
+  `
+
+  const result = await Dialog.show({
+    title: t('settings.general.resetSettings'),
+    html,
+    showCancelButton: true,
+    confirmButtonText: t('common.reset'),
+    preConfirm: () => {
+      const checkboxes = document.querySelectorAll('.reset-option input[type="checkbox"]:checked') as NodeListOf<HTMLInputElement>
+      return Array.from(checkboxes).map(cb => cb.value)
+    }
+  })
+
+  if (result.isConfirmed && (result as any).value?.length > 0) {
+    const confirmResult = await Dialog.show({
+      title: t('settings.general.resetSettings'),
+      text: t('settings.general.resetConfirm'),
+      showCancelButton: true,
+      confirmButtonText: t('common.ok'),
+    })
+
+    if (confirmResult.isConfirmed) {
+      const selectedKeys = (result as any).value as string[]
+      resetSelectedSettings(selectedKeys)
+    }
+  }
+}
+
+const resetSelectedSettings = (keys: string[]) => {
+  // 保存重置前的外观设置
+  const previousTheme = store.config.appearance.theme
+  
+  for (const key of keys) {
+    switch (key) {
+      case 'tips':
+        store.config.general.tips = { ...defaults.general.tips }
+        break
+      case 'llm':
+        store.config.llm = JSON.parse(JSON.stringify(defaults.llm))
+        store.config.engines.__favorites__ = JSON.parse(JSON.stringify(defaults.engines.__favorites__))
+        break
+      case 'appearance':
+        store.config.appearance = JSON.parse(JSON.stringify(defaults.appearance))
+        break
+      case 'shortcuts':
+        store.config.shortcuts = JSON.parse(JSON.stringify(defaults.shortcuts))
+        break
+      case 'plugins':
+        store.config.plugins = JSON.parse(JSON.stringify(defaults.plugins))
+        break
+      case 'stt':
+        store.config.stt = JSON.parse(JSON.stringify(defaults.stt))
+        break
+      case 'tts':
+        store.config.tts = JSON.parse(JSON.stringify(defaults.tts))
+        break
+      case 'rag':
+        store.config.rag = JSON.parse(JSON.stringify(defaults.rag))
+        break
+      case 'language':
+        store.config.general.locale = defaults.general.locale
+        store.config.llm.locale = defaults.llm.locale
+        break
+    }
+  }
+  
   store.saveSettings()
+  
+  // 检查外观设置是否有变化
+  if (keys.includes('appearance') && store.config.appearance.theme !== previousTheme) {
+    // 应用新的主题
+    window.api.app.setAppearanceTheme(store.config.appearance.theme)
+  }
 }
 
 const save = () => {
@@ -159,6 +247,32 @@ dialog.settings .sp-main {
 .appearance div.selected img {
   border: 3px solid var(--highlight-color);
   border-radius: 8px;
+}
+
+</style>
+
+<style>
+
+.reset-options {
+  text-align: left;
+}
+
+.reset-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 0;
+  cursor: pointer;
+}
+
+.reset-option input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+
+.reset-option span {
+  user-select: none;
 }
 
 </style>

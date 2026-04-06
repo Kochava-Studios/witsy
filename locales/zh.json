@@ -28,10 +28,10 @@
       "deleteCustomInstruction": "您确定要删除此自定义指令吗？",
       "deleteDocument": "您确定要删除此文档吗？",
       "deleteMemory": "您确定要删除此记忆吗？",
-      "deleteRepository": "Are you sure you want to delete this collection?",
+      "deleteRepository": "您确定要删除此集合吗？",
       "unsavedChanges": "您有未保存的更改。如果您关闭此窗口，您的工作将丢失。"
     },
-    "content": "Content",
+    "content": "内容",
     "continue": "继续",
     "copied": "已复制",
     "copy": "复制",
@@ -114,11 +114,11 @@
     "moveUp": "上移",
     "name": "名称",
     "new": "新建",
-    "newChat": "New Conversation",
+    "newChat": "新对话",
     "next": "下一步",
     "no": "否",
     "noneSelected": "未选择",
-    "notes": "Notes",
+    "notes": "笔记",
     "ok": "确定",
     "path": "路径",
     "pick": "选择",
@@ -177,7 +177,7 @@
     },
     "status": "状态",
     "stop": "停止",
-    "title": "Title",
+    "title": "标题",
     "tools": "工具",
     "tryAgain": "请再试一次。",
     "type": "类型",
@@ -276,8 +276,8 @@
         "help": {
           "connect": "使用 {'{'}{'{'}output.#{'}'}{'}'} 变量连接前一步骤的输出（例如，第1步的输出为 {'{'}{'{'}output.1{'}'}{'}'}）",
           "description": "描述将用于在代理执行过程中提供进度更新",
-          "docRepo": "Facts extracted from the collection will be appended to your prompt.",
-          "factsVarDesc": "Facts extracted from the collection",
+          "docRepo": "从集合中提取的事实将被附加到您的提示中。",
+          "factsVarDesc": "从集合中提取的事实",
           "outputVarDesc": "步骤 #{step} 的输出",
           "prompt": "描述您希望代理在工作流程此步骤中执行的操作",
           "title": "设计您的多步骤工作流。提示模板将用于执行每个步骤。您可以包含“变量”，这些变量将在执行代理时用用户提供的值替换。使用格式 {'{'}{'{'}name:description:value{'}'}{'}'} 来定义变量（描述将在提示输入值时指导用户）。描述和值都是可选的。"
@@ -557,7 +557,7 @@
       "today": "今天",
       "yesterday": "昨天"
     },
-    "title": "Conversations"
+    "title": "对话"
   },
   "cli": {
     "install": {
@@ -905,13 +905,13 @@
       "title": "知识库默认设置"
     },
     "create": {
-      "embeddingWarning": "embedding model cannot be changed once collection is created",
-      "title": "New Collection"
+      "embeddingWarning": "集合创建后无法更改嵌入模型",
+      "title": "新建集合"
     },
     "empty": {
-      "create": "Add some knowledge",
-      "text": "Knowledge Base lets you chat with your own content - from simple documents to entire knowledge bases. Think of it as having a smart assistant that has read and understood all your company’s materials.",
-      "title": "Welcome to the Knowledge Base"
+      "create": "添加知识",
+      "text": "知识库让您可以与自己的内容聊天 - 从简单文档到整个知识库。想象一下拥有一个已经阅读并理解了贵公司所有资料的智能助手。",
+      "title": "欢迎使用知识库"
     },
     "file": {
       "error": {
@@ -920,11 +920,11 @@
           "title": "检测到大文件"
         },
         "formatNotSupported": {
-          "title": "File format not supported"
+          "title": "不支持的文件格式"
         }
       },
       "help": {
-        "formats": "Add text files (including PDF and Microsoft Office documents)"
+        "formats": "添加文本文件（包括 PDF 和 Microsoft Office 文档）"
       }
     },
     "information": {
@@ -937,18 +937,18 @@
       "title": "@:{'common.docRepo'}",
       "tooltips": {
         "config": "@:{'docRepo.config.title'}",
-        "delete": "Delete collection"
+        "delete": "删除集合"
       }
     },
     "note": {
-      "add": "Add Note",
+      "add": "添加笔记",
       "create": {
-        "title": "New Note"
+        "title": "新建笔记"
       },
       "edit": {
-        "title": "Edit Note"
+        "title": "编辑笔记"
       },
-      "noNotes": "You don't have any notes yet. Click on the button below to add your first note."
+      "noNotes": "您还没有任何笔记。点击下面的按钮添加您的第一条笔记。"
     },
     "scan": {
       "filesOnly": "仅文件",
@@ -969,7 +969,7 @@
       "wip": "编制中"
     },
     "view": {
-      "noDocuments": "You don't have any documents yet. Click on the buttons below to add documents or folders.",
+      "noDocuments": "您还没有任何文档。点击下面的按钮添加文档或文件夹。",
       "tooltips": {
         "addFile": "添加文件",
         "addFolder": "添加文件夹",
@@ -2647,7 +2647,7 @@
       "title": "保存文档"
     },
     "saveError": "保存文档时出错",
-    "title": "Scratchpad",
+    "title": "记事本",
     "unsavedPrompt": "您想保存更改吗？",
     "untitled": "未命名文档",
     "versions": {
@@ -2933,6 +2933,20 @@
       "localeLLM": "LLM 语言",
       "localeUI": "界面语言",
       "promptLLMModel": "快速提示 LLM 模型",
+      "resetSettings": "重置设置",
+      "resetSettingsDescription": "选择要重置的设置类别：",
+      "resetConfirm": "你确定要重置选定的设置吗？",
+      "resetOptions": {
+        "tips": "提示",
+        "llm": "LLM 模型",
+        "appearance": "外观",
+        "shortcuts": "快捷键",
+        "plugins": "插件",
+        "stt": "语音转文本",
+        "tts": "文本转语音",
+        "rag": "知识库",
+        "language": "语言"
+      },
       "resetTips": "重置提示",
       "runAtLogin": "登录时运行",
       "theme": "外观",

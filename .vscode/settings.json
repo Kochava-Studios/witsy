@@ -7,5 +7,6 @@
   "stylelint.validate": ["css", "vue"],
   "css.validate": false,
   "typescript.tsdk": "node_modules/typescript/lib",
-  "typescript.enablePromptUseWorkspaceTsdk": true
+  "typescript.enablePromptUseWorkspaceTsdk": true,
+  "editor.fontSize": 13
 }
