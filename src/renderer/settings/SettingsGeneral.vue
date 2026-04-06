@@ -134,14 +134,14 @@ const onResetSettings = async () => {
     if (confirmResult.isConfirmed) {
       const selectedKeys = (result as any).value as string[]
       resetSelectedSettings(selectedKeys)
-      setTimeout(() => {
-        window.location.reload()
-      }, 500)
     }
   }
 }
 
 const resetSelectedSettings = (keys: string[]) => {
+  // 保存重置前的外观设置
+  const previousTheme = store.config.appearance.theme
+  
   for (const key of keys) {
     switch (key) {
       case 'tips':
@@ -175,7 +175,14 @@ const resetSelectedSettings = (keys: string[]) => {
         break
     }
   }
+  
   store.saveSettings()
+  
+  // 检查外观设置是否有变化
+  if (keys.includes('appearance') && store.config.appearance.theme !== previousTheme) {
+    // 应用新的主题
+    window.api.app.setAppearanceTheme(store.config.appearance.theme)
+  }
 }
 
 const save = () => {

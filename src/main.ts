@@ -214,7 +214,15 @@ app.whenReady().then(async () => {
   }
 
   // set theme
-  nativeTheme.themeSource = settings.appearance.theme;
+  if (settings.appearance.theme === 'system') {
+    // 当主题设置为系统时，根据时间自动切换
+    const hour = new Date().getHours();
+    // 6:00 - 18:00 使用明亮模式，其他时间使用黑暗模式
+    const isDaytime = hour >= 6 && hour < 18;
+    nativeTheme.themeSource = isDaytime ? 'light' : 'dark';
+  } else {
+    nativeTheme.themeSource = settings.appearance.theme;
+  }
 
   // we need an http server
   const httpServer = HttpServer.getInstance();
