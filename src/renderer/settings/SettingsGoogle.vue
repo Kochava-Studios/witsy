@@ -54,6 +54,27 @@
       <label>{{ t('settings.engines.requestCooldown') }}</label>
       <input type="number" name="requestCooldown" v-model.number="requestCooldown" min="0" step="100" :placeholder="t('settings.engines.requestCooldownHint')" @change="save"/>
     </div>
+    <div class="form-field">
+      <label>{{ t('settings.engines.google.safetySettings') }}</label>
+      <div class="form-subgroup">
+        <select name="safetySettings" v-model="safetySettings" @change="save">
+          <option value="">{{ t('settings.engines.google.safetyDefault') }}</option>
+          <option value="BLOCK_LOW_AND_ABOVE">{{ t('settings.engines.google.safetyBlockMost') }}</option>
+          <option value="BLOCK_MEDIUM_AND_ABOVE">{{ t('settings.engines.google.safetyBlockSome') }}</option>
+          <option value="BLOCK_ONLY_HIGH">{{ t('settings.engines.google.safetyBlockFew') }}</option>
+          <option value="BLOCK_NONE">{{ t('settings.engines.google.safetyBlockNone') }}</option>
+          <option value="OFF">{{ t('settings.engines.google.safetyOff') }}</option>
+        </select>
+        <span class="hint">{{ t('settings.engines.google.safetySettingsHint') }}</span>
+      </div>
+    </div>
+    <div class="form-field">
+      <label>{{ t('settings.engines.google.defaultThinkingBudget') }}</label>
+      <div class="form-subgroup">
+        <input type="number" name="defaultThinkingBudget" v-model.number="defaultThinkingBudget" min="-1" step="1" :placeholder="t('settings.engines.google.defaultThinkingBudgetHint')" @change="save"/>
+        <span class="hint">{{ t('settings.engines.google.defaultThinkingBudgetExplain') }}</span>
+      </div>
+    </div>
     <div class="form-field horizontal">
       <input type="checkbox" id="google-disable-tools" name="disableTools" v-model="disableTools" @change="save" />
       <label for="google-disable-tools">{{  t('settings.engines.disableTools') }}</label>
@@ -72,6 +93,7 @@ import RefreshButton from '@components/RefreshButton.vue'
 import ModelSelectPlus from '@components/ModelSelectPlus.vue'
 import InputObfuscated from '@components/InputObfuscated.vue'
 import { ChatModel, defaultCapabilities } from 'multi-llm-ts'
+import { GoogleEngineConfig } from 'types/config'
 
 const vertexai = ref(false)
 const apiKey = ref(null)
@@ -80,6 +102,8 @@ const project = ref('')
 const location = ref('')
 const disableTools = ref(false)
 const requestCooldown = ref<number>(null)
+const safetySettings = ref<string>('')
+const defaultThinkingBudget = ref<number>(null)
 const chat_model = ref<string>(null)
 const vision_model = ref<string>(null)
 const chat_models = ref<ChatModel[]>([])
@@ -102,6 +126,8 @@ const load = () => {
   vision_model.value = store.config.engines.google?.model?.vision || ''
   disableTools.value = store.config.engines.google?.disableTools || false
   requestCooldown.value = store.config.engines.google?.requestCooldown || null
+  safetySettings.value = (store.config.engines.google as GoogleEngineConfig)?.safetySettings || ''
+  defaultThinkingBudget.value = (store.config.engines.google as GoogleEngineConfig)?.defaultThinkingBudget ?? null
 }
 
 const getModels = async (): Promise<boolean> => {
@@ -140,6 +166,8 @@ const save = () => {
   store.config.engines.google.model.vision = vision_model.value
   store.config.engines.google.disableTools = disableTools.value
   store.config.engines.google.requestCooldown = requestCooldown.value || undefined
+  ;(store.config.engines.google as GoogleEngineConfig).safetySettings = safetySettings.value || undefined
+  ;(store.config.engines.google as GoogleEngineConfig).defaultThinkingBudget = defaultThinkingBudget.value ?? undefined
   store.saveSettings()
 }
 

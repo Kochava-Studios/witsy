@@ -50,6 +50,11 @@ export type CustomEngineConfig = EngineConfig & {
   api: string
 }
 
+export type GoogleEngineConfig = EngineConfig & {
+  safetySettings?: string
+  defaultThinkingBudget?: number
+}
+
 export type ProxyMode = 'default' | 'bypass' | 'custom'
 
 export type GeneralConfig = {

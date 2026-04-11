@@ -2820,10 +2820,21 @@
       "google": {
         "aboutModels": "More about Google models",
         "api": "Google API",
+        "defaultThinkingBudget": "Default thinking budget",
+        "defaultThinkingBudgetExplain": "Applied when a request does not set its own thinking budget. Empty or -1 lets Gemini choose automatically, 0 disables thinking, and any value above 0 sets the thinking token limit.",
+        "defaultThinkingBudgetHint": "Empty or -1 = automatic, 0 = off, above 0 = thinking token limit",
         "gemini": "Gemini",
         "location": "Location",
         "pricing": "Google pricing",
         "project": "Project ID",
+        "safetyBlockFew": "Block few (high probability only)",
+        "safetyBlockMost": "Block most (low probability and above)",
+        "safetyBlockNone": "Block none",
+        "safetyBlockSome": "Block some (medium probability and above)",
+        "safetyDefault": "Use model defaults",
+        "safetyOff": "Turn off safety filter",
+        "safetySettings": "Safety filter",
+        "safetySettingsHint": "Applied to harassment, hate speech, explicit content, and dangerous content",
         "vertexai": "Vertex AI"
       },
       "groq": {

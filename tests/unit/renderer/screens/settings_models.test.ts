@@ -139,6 +139,11 @@ test('google settings', async () => {
   expect(store.config.engines.google.disableTools).toBeFalsy()
   await google.find('[name=disableTools]').setValue(true)
   expect(store.config.engines.google.disableTools).toBeTruthy()
+  await google.find('[name=safetySettings]').setValue('BLOCK_NONE')
+  expect((store.config.engines.google as any).safetySettings).toBe('BLOCK_NONE')
+  await google.find('[name=defaultThinkingBudget]').setValue('1024')
+  await google.find('[name=defaultThinkingBudget]').trigger('change')
+  expect((store.config.engines.google as any).defaultThinkingBudget).toBe(1024)
 })
 
 test('xai settings', async () => {
