@@ -42,7 +42,10 @@ import ContextMenuTrigger from './ContextMenuTrigger.vue'
 import MessageItemBody from './MessageItemBody.vue'
 
 const content = () => extractCodeBlockContent(props.content)
-const { copying, onCopy } = useArtifactCopy(content)
+const { copying, onCopy } = useArtifactCopy({
+  plainText: content,
+  html: () => window.api.markdown.render(content()),
+})
 
 const downloadButton = ref<HTMLElement>(null)
 const panelBody = ref<HTMLElement>(null)
@@ -143,6 +146,8 @@ const onDownloadFormat = async (action: string) => {
     }
   })
 }
+
+defineExpose({ onCopy })
 
 </script>
 
