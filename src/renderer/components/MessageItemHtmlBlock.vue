@@ -49,7 +49,10 @@ import MessageItemBody from './MessageItemBody.vue'
 const content = () => extractCodeBlockContent(props.content)
 
 const { onDomEvent } = useEventListener()
-const { copying, onCopy } = useArtifactCopy(content)
+const { copying, onCopy } = useArtifactCopy({
+  plainText: () => extractPlainText(extractHtmlContent()),
+  html: () => extractHtmlContent(),
+})
 
 const previewHtml = ref(false)
 const htmlRenderingDelayPassed = ref(false)
@@ -85,6 +88,11 @@ const extractBodyContent = (htmlContent: string) => {
   const bodyEnd = htmlContent.lastIndexOf('</body>')
   if (bodyEnd === -1) return htmlContent.slice(bodyTagEnd + 1)
   return htmlContent.slice(bodyTagEnd + 1, bodyEnd)
+}
+
+const extractPlainText = (htmlContent: string) => {
+  const doc = new DOMParser().parseFromString(htmlContent, 'text/html')
+  return doc.body?.innerText?.trim() || doc.body?.textContent?.trim() || ''
 }
 
 const isDarkMode = () => {
@@ -279,6 +287,8 @@ onBeforeUnmount(() => {
 const toggleHtml = () => {
   previewHtml.value = !previewHtml.value
 }
+
+defineExpose({ onCopy })
 
 const onDownloadFormat = async (action: string) => {
 
