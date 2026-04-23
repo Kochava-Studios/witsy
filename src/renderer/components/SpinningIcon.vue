@@ -4,13 +4,13 @@
 
 <script setup lang="ts">
 
-import { RefreshCcwIcon } from 'lucide-vue-next'
+import { RefreshCwIcon } from 'lucide-vue-next'
 import { computed, PropType } from 'vue'
 
 const props = defineProps({
   icon: {
     type: [Object, Function] as PropType<any>,
-    default: () => RefreshCcwIcon
+    default: () => RefreshCwIcon
   },
   spinning: {
     type: Boolean,
@@ -22,7 +22,7 @@ const props = defineProps({
   }
 })
 
-const iconComponent = computed(() => props.icon || RefreshCcwIcon)
+const iconComponent = computed(() => props.icon || RefreshCwIcon)
 
 const sizeMap = {
   sm: '0.85rem',
