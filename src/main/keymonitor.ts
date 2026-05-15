@@ -8,6 +8,7 @@ import { loadSettings } from './config'
 
 const isMac = process.platform === 'darwin'
 const isLinux = process.platform === 'linux'
+const MULTI_MODIFIER_ACTIVATION_DELAY_MS = 120
 
 // Platform-specific key codes for modifier keys
 const MODIFIER_KEY_CODES: Record<string, number> = isMac ? {
@@ -130,6 +131,11 @@ type ParsedNativeShortcut = {
   requiredModifiers: number[] // key codes of required modifiers
 }
 
+type PendingShortcut = {
+  shortcut: ParsedNativeShortcut
+  timer: ReturnType<typeof setTimeout>
+}
+
 export default class KeyMonitor {
 
   private app: App
@@ -140,7 +146,8 @@ export default class KeyMonitor {
   // Track state
   private heldModifiers: Set<number> = new Set()
   private modifierPressedAlone: Map<number, boolean> = new Map() // true if no other key pressed while held
-  private activeShortcuts: Set<string> = new Set() // shortcuts currently "down"
+  private activeShortcuts: Set<keyof NativeShortcutCallbacks> = new Set() // shortcuts currently "down"
+  private pendingShortcuts: Map<keyof NativeShortcutCallbacks, PendingShortcut> = new Map()
 
   // Static methods for use without instance
   static isPlatformSupported(): boolean {
@@ -296,6 +303,7 @@ export default class KeyMonitor {
       this.heldModifiers.clear()
       this.modifierPressedAlone.clear()
       this.activeShortcuts.clear()
+      this.clearPendingShortcuts()
       console.info('[keymonitor] Stopped')
     } catch (error) {
       console.error('[keymonitor] Stop failed:', error)
@@ -348,6 +356,15 @@ export default class KeyMonitor {
     this.heldModifiers.add(keyCode)
     this.modifierPressedAlone.set(keyCode, true)
 
+    if (this.heldModifiers.size > 1) {
+      for (const modKeyCode of this.heldModifiers) {
+        this.modifierPressedAlone.set(modKeyCode, false)
+      }
+      this.releaseActiveModifierOnlyShortcutsForModifiers(this.heldModifiers)
+    }
+
+    this.cancelInvalidPendingShortcuts()
+
     // Check single modifier-only shortcuts (onDown)
     this.checkModifierOnlyShortcuts(keyCode, 'down')
 
@@ -358,8 +375,15 @@ export default class KeyMonitor {
   // Common modifier up handling (both platforms)
   private handleModifierUp(keyCode: number): void {
     const wasAlone = this.modifierPressedAlone.get(keyCode) ?? false
+
+    // A clean quick tap of a multi-modifier combo can be released before the
+    // delayed activation fires. Trigger it now so tap mode still works.
+    this.firePendingShortcutsForReleasedModifier(keyCode)
+
     this.heldModifiers.delete(keyCode)
     this.modifierPressedAlone.delete(keyCode)
+
+    this.cancelPendingShortcuts((shortcut) => shortcut.requiredModifiers.includes(keyCode))
 
     // Check single modifier-only shortcuts (onUp only if pressed alone)
     if (wasAlone) {
@@ -375,14 +399,17 @@ export default class KeyMonitor {
 
     const keyCode = event.keyCode
 
+    this.cancelPendingShortcuts()
+
     // Mark all held modifiers as "not alone"
     for (const modKeyCode of this.heldModifiers) {
       this.modifierPressedAlone.set(modKeyCode, false)
     }
+    this.releaseActiveModifierOnlyShortcutsForModifiers(this.heldModifiers)
 
     // Check modifier+key shortcuts
     for (const shortcut of this.nativeShortcuts) {
-      if (shortcut.keyCode === keyCode && this.areModifiersHeld(shortcut.requiredModifiers)) {
+      if (shortcut.keyCode === keyCode && this.areExactModifiersHeld(shortcut.requiredModifiers)) {
         if (!this.activeShortcuts.has(shortcut.name)) {
           this.activeShortcuts.add(shortcut.name)
           console.debug(`[keymonitor] ${shortcut.name} onDown`)
@@ -429,17 +456,17 @@ export default class KeyMonitor {
     // Check for multi-modifier combos (no key, multiple modifiers)
     for (const shortcut of this.nativeShortcuts) {
       // Must be a multi-modifier combo: no modifierKeyCode, no keyCode, multiple requiredModifiers
-      if (shortcut.modifierKeyCode === undefined &&
-          shortcut.keyCode === undefined &&
-          shortcut.requiredModifiers.length > 1) {
-        // Check if all required modifiers are held
-        if (this.areModifiersHeld(shortcut.requiredModifiers)) {
-          if (!this.activeShortcuts.has(shortcut.name)) {
-            this.activeShortcuts.add(shortcut.name)
-            console.debug(`[keymonitor] ${shortcut.name} onDown (multi-modifier combo)`)
-            this.callbacks[shortcut.name].onDown()
-          }
-        }
+      if (!this.isMultiModifierCombo(shortcut)) {
+        continue
+      }
+
+      if (!this.areExactModifiersHeld(shortcut.requiredModifiers)) {
+        this.cancelPendingShortcut(shortcut.name)
+        continue
+      }
+
+      if (!this.activeShortcuts.has(shortcut.name) && !this.pendingShortcuts.has(shortcut.name)) {
+        this.schedulePendingShortcut(shortcut)
       }
     }
   }
@@ -457,5 +484,90 @@ export default class KeyMonitor {
 
   private areModifiersHeld(requiredModifiers: number[]): boolean {
     return requiredModifiers.every(mod => this.heldModifiers.has(mod))
+  }
+
+  private releaseActiveModifierOnlyShortcutsForModifiers(keyCodes: Iterable<number>): void {
+    const keyCodeSet = new Set(keyCodes)
+
+    for (const shortcut of this.nativeShortcuts) {
+      if (shortcut.name &&
+          shortcut.modifierKeyCode !== undefined &&
+          keyCodeSet.has(shortcut.modifierKeyCode) &&
+          this.activeShortcuts.has(shortcut.name)) {
+        this.activeShortcuts.delete(shortcut.name)
+        console.debug(`[keymonitor] ${shortcut.name} onUp (modifier no longer alone)`)
+        this.callbacks[shortcut.name].onUp()
+      }
+    }
+  }
+
+  private areExactModifiersHeld(requiredModifiers: number[]): boolean {
+    return this.heldModifiers.size === requiredModifiers.length && this.areModifiersHeld(requiredModifiers)
+  }
+
+  private isMultiModifierCombo(shortcut: ParsedNativeShortcut): boolean {
+    return shortcut.modifierKeyCode === undefined &&
+      shortcut.keyCode === undefined &&
+      shortcut.requiredModifiers.length > 1
+  }
+
+  private schedulePendingShortcut(shortcut: ParsedNativeShortcut): void {
+    if (!shortcut.name) return
+
+    const timer = setTimeout(() => {
+      this.firePendingShortcut(shortcut.name)
+    }, MULTI_MODIFIER_ACTIVATION_DELAY_MS)
+
+    this.pendingShortcuts.set(shortcut.name, { shortcut, timer })
+  }
+
+  private firePendingShortcut(name: keyof NativeShortcutCallbacks): void {
+    const pending = this.pendingShortcuts.get(name)
+    if (!pending) return
+
+    this.pendingShortcuts.delete(name)
+    clearTimeout(pending.timer)
+
+    if (!this.areExactModifiersHeld(pending.shortcut.requiredModifiers) || this.activeShortcuts.has(name)) {
+      return
+    }
+
+    this.activeShortcuts.add(name)
+    console.debug(`[keymonitor] ${name} onDown (multi-modifier combo)`)
+    this.callbacks[name].onDown()
+  }
+
+  private firePendingShortcutsForReleasedModifier(keyCode: number): void {
+    const pendingNames = Array.from(this.pendingShortcuts.values())
+      .filter(({ shortcut }) => shortcut.name && shortcut.requiredModifiers.includes(keyCode) && this.areExactModifiersHeld(shortcut.requiredModifiers))
+      .map(({ shortcut }) => shortcut.name)
+
+    for (const name of pendingNames) {
+      this.firePendingShortcut(name)
+    }
+  }
+
+  private cancelInvalidPendingShortcuts(): void {
+    this.cancelPendingShortcuts((shortcut) => !this.areExactModifiersHeld(shortcut.requiredModifiers))
+  }
+
+  private cancelPendingShortcuts(predicate?: (shortcut: ParsedNativeShortcut) => boolean): void {
+    for (const [name, pending] of this.pendingShortcuts) {
+      if (!predicate || predicate(pending.shortcut)) {
+        this.cancelPendingShortcut(name)
+      }
+    }
+  }
+
+  private cancelPendingShortcut(name: keyof NativeShortcutCallbacks): void {
+    const pending = this.pendingShortcuts.get(name)
+    if (!pending) return
+
+    clearTimeout(pending.timer)
+    this.pendingShortcuts.delete(name)
+  }
+
+  private clearPendingShortcuts(): void {
+    this.cancelPendingShortcuts()
   }
 }
